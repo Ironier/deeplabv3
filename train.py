@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 import cv2
 
 import time
-
+# 确定模型号
 # NOTE! NOTE! change this to not overwrite all log data when you train the model:
 model_id = "1"
 
@@ -35,11 +35,13 @@ learning_rate = 0.0001
 
 network = DeepLabV3(model_id, project_dir="/root/deeplabv3").cuda()
 
+#用pytorch自带的DataSet类
 train_dataset = DatasetTrain(cityscapes_data_path="/root/deeplabv3/data/cityscapes",
                              cityscapes_meta_path="/root/deeplabv3/data/cityscapes/meta")
 val_dataset = DatasetVal(cityscapes_data_path="/root/deeplabv3/data/cityscapes",
                          cityscapes_meta_path="/root/deeplabv3/data/cityscapes/meta")
 
+#训练集和验证集的batch数量
 num_train_batches = int(len(train_dataset)/batch_size)
 num_val_batches = int(len(val_dataset)/batch_size)
 print ("num_train_batches:", num_train_batches)
@@ -51,16 +53,17 @@ train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
 val_loader = torch.utils.data.DataLoader(dataset=val_dataset,
                                          batch_size=batch_size, shuffle=False,
                                          num_workers=1)
-
+#定义优化器的参数
 params = add_weight_decay(network, l2_value=0.0001)
 optimizer = torch.optim.Adam(params, lr=learning_rate)
 
+#加载citycapes数据集
 with open("/root/deeplabv3/data/cityscapes/meta/class_weights.pkl", "rb") as file: # (needed for python3)
     class_weights = np.array(pickle.load(file))
 class_weights = torch.from_numpy(class_weights)
 class_weights = Variable(class_weights.type(torch.FloatTensor)).cuda()
 
-# loss function
+# loss function (交叉熵损失函数)
 loss_fn = nn.CrossEntropyLoss(weight=class_weights)
 
 epoch_losses_train = []
@@ -95,7 +98,6 @@ for epoch in range(num_epochs):
         optimizer.step() # (perform optimization step)
 
         #print (time.time() - current_time)
-
     epoch_loss = np.mean(batch_losses)
     epoch_losses_train.append(epoch_loss)
     with open("%s/epoch_losses_train.pkl" % network.model_dir, "wb") as file:
@@ -121,7 +123,7 @@ for epoch in range(num_epochs):
         with torch.no_grad(): # (corresponds to setting volatile=True in all variables, this is done during inference to reduce memory consumption)
             imgs = Variable(imgs).cuda() # (shape: (batch_size, 3, img_h, img_w))
             label_imgs = Variable(label_imgs.type(torch.LongTensor)).cuda() # (shape: (batch_size, img_h, img_w))
-
+            #输出模型当前的预测图像
             outputs = network(imgs) # (shape: (batch_size, num_classes, img_h, img_w))
 
             # compute the loss:
@@ -140,7 +142,7 @@ for epoch in range(num_epochs):
     plt.ylabel("loss")
     plt.xlabel("epoch")
     plt.title("val loss per epoch")
-    plt.savefig("%s/epoch_losses_val.png" % network.model_dir)
+    plt.savefig("%s/epoch_losses_val.png" % network.model_dir) #输出训练损失
     plt.close(1)
 
     # save the model weights to disk:

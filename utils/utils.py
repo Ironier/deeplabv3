@@ -12,7 +12,7 @@ def add_weight_decay(net, l2_value, skip_list=()):
     for name, param in net.named_parameters():
         if not param.requires_grad:
             continue # frozen weights
-        if len(param.shape) == 1 or name.endswith(".bias") or name in skip_list:
+        if len(param.shape) == 1 or name.endswith(".bias") or name in skip_list or name.split(".")[0] in skip_list:
             no_decay.append(param)
         else:
             decay.append(param)

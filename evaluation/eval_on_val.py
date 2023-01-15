@@ -74,8 +74,8 @@ for step, (imgs, label_imgs, img_ids) in enumerate(val_loader):
                 pred_label_img = pred_label_imgs[i] # (shape: (img_h, img_w))
                 img_id = img_ids[i]
                 img = imgs[i] # (shape: (3, img_h, img_w))
-
-                img = img.data.cpu().numpy()
+                ###将数据逆归一化为RGB图像###
+                img = img.data.cpu().numpy() 
                 img = np.transpose(img, (1, 2, 0)) # (shape: (img_h, img_w, 3))
                 img = img*np.array([0.229, 0.224, 0.225])
                 img = img + np.array([0.485, 0.456, 0.406])

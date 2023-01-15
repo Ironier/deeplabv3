@@ -1,5 +1,4 @@
 # camera-ready
-
 import sys
 
 sys.path.append("/root/deeplabv3")
@@ -25,6 +24,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import cv2
 
+#将本文模型中的标签序号映射为cityscapes数据集中的标签序号，方便评估IoU和mIoU
 trainId_to_id = {
     0: 7,
     1: 8,
@@ -50,10 +50,10 @@ trainId_to_id = {
 trainId_to_id_map_func = np.vectorize(trainId_to_id.get)
 
 batch_size = 2
-
+#加载模型
 network = DeepLabV3("eval_val_for_metrics", project_dir="/root/deeplabv3").cuda()
 network.load_state_dict(torch.load("/root/deeplabv3/pretrained_models/model_13_2_2_2_epoch_580.pth"))
-
+#加载验证集
 val_dataset = DatasetVal(cityscapes_data_path="/root/deeplabv3/data/cityscapes",
                          cityscapes_meta_path="/root/deeplabv3/data/cityscapes/meta")
 
@@ -98,7 +98,7 @@ for step, (imgs, label_imgs, img_ids) in enumerate(val_loader):
         for i in range(pred_label_imgs.shape[0]):
             pred_label_img = pred_label_imgs[i] # (shape: (1024, 2048))
             img_id = img_ids[i]
-
+            # 注意！这里没有将输出转换为RGB图片，而是转换为了标签矩阵，为了配合cityscape数据集提供的评估脚本
             # convert pred_label_img from trainId to id pixel values:
             pred_label_img = trainId_to_id_map_func(pred_label_img) # (shape: (1024, 2048))
             pred_label_img = pred_label_img.astype(np.uint8)

@@ -28,10 +28,10 @@ import cv2
 import os
 
 batch_size = 2
-
+#加载模型
 network = DeepLabV3("eval_seq", project_dir="/root/deeplabv3").cuda()
 network.load_state_dict(torch.load("/root/deeplabv3/pretrained_models/model_13_2_2_2_epoch_580.pth"))
-
+#加载不同视频
 for sequence in ["00", "01", "02"]:
     print (sequence)
 
@@ -48,14 +48,15 @@ for sequence in ["00", "01", "02"]:
 
     network.eval() # (set in evaluation mode, this affects BatchNorm and dropout)
     unsorted_img_ids = []
-    for step, (imgs, img_ids) in enumerate(val_loader):
+    ###遍历视频中的每张图片进行输出###
+    for step, (imgs, img_ids) in enumerate(val_loader): 
         with torch.no_grad(): # (corresponds to setting volatile=True in all variables, this is done during inference to reduce memory consumption)
             imgs = Variable(imgs).cuda() # (shape: (batch_size, 3, img_h, img_w))
 
             outputs = network(imgs) # (shape: (batch_size, num_classes, img_h, img_w))
 
             ####################################################################
-            # save data for visualization:
+            # 将输出保存为视频
             ####################################################################
             outputs = outputs.data.cpu().numpy() # (shape: (batch_size, num_classes, img_h, img_w))
             pred_label_imgs = np.argmax(outputs, axis=1) # (shape: (batch_size, img_h, img_w))
@@ -65,7 +66,7 @@ for sequence in ["00", "01", "02"]:
                 pred_label_img = pred_label_imgs[i] # (shape: (img_h, img_w))
                 img_id = img_ids[i]
                 img = imgs[i] # (shape: (3, img_h, img_w))
-
+                ###对每个输出逆归一化###
                 img = img.data.cpu().numpy()
                 img = np.transpose(img, (1, 2, 0)) # (shape: (img_h, img_w, 3))
                 img = img*np.array([0.229, 0.224, 0.225])
@@ -74,12 +75,12 @@ for sequence in ["00", "01", "02"]:
                 img = img.astype(np.uint8)
 
                 pred_label_img_color = label_img_to_color(pred_label_img)
-                overlayed_img = 0.35*img + 0.65*pred_label_img_color
+                overlayed_img = 0.35*img + 0.65*pred_label_img_color # 35%的原图像叠加%65的预测图像
                 overlayed_img = overlayed_img.astype(np.uint8)
 
                 img_h = overlayed_img.shape[0]
                 img_w = overlayed_img.shape[1]
-
+                ###保存三种状况的每一帧图像###
                 cv2.imwrite(network.model_dir + "/" + img_id + ".png", img)
                 cv2.imwrite(network.model_dir + "/" + img_id + "_pred.png", pred_label_img_color)
                 cv2.imwrite(network.model_dir + "/" + img_id + "_overlayed.png", overlayed_img)
@@ -87,7 +88,7 @@ for sequence in ["00", "01", "02"]:
                 unsorted_img_ids.append(img_id)
 
     ############################################################################
-    # create visualization video:
+    # 创建可视化视频
     ############################################################################
     out = cv2.VideoWriter("%s/stuttgart_%s_combined.avi" % (network.model_dir, sequence), cv2.VideoWriter_fourcc(*"MJPG"), 20, (2*img_w, 2*img_h))
     sorted_img_ids = sorted(unsorted_img_ids)
